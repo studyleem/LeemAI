@@ -1,4 +1,3 @@
-flask
-sentence-transformers
-scikit-learn
-numpy
+# LeemAI v2 dependencies
+# Only ONE non-standard package needed — keeps the Vercel bundle tiny.
+rank_bm25

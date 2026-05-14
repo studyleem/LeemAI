@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "functions": {
+    "api/ask.py": {
+      "maxDuration": 15,
+      "memory": 512
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/ask",
+      "dest": "/api/ask.py"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",  "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
+}
