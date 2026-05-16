@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leem AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c12;
+  --surface: #111420;
+  --surface2: #181c2e;
+  --border: #1e2540;
+  --accent: #4f8ef7;
+  --accent-glow: rgba(79,142,247,0.18);
+  --accent2: #a78bfa;
+  --green: #34d399;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --text: #e2e8f8;
+  --muted: #5a6490;
+  --user-bg: #1a2040;
+  --ai-bg: #111420;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Space Grotesk', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* ── Animated bg ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(79,142,247,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 80% 80%, rgba(167,139,250,0.05) 0%, transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── Header ── */
+header{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  border-bottom:1px solid var(--border);
+  background:rgba(10,12,18,0.9);
+  backdrop-filter:blur(12px);
+  flex-shrink:0;
+}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-icon{
+  width:38px;height:38px;
+  background:linear-gradient(135deg,#4f8ef7,#a78bfa);
+  border-radius:10px;
+  display:grid;place-items:center;
+  font-weight:700;font-size:14px;color:#fff;
+  letter-spacing:-0.5px;flex-shrink:0;
+  box-shadow:0 0 20px rgba(79,142,247,0.3);
+}
+.logo-text h1{font-size:17px;font-weight:700;letter-spacing:-0.3px;}
+.logo-text p{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.status-badge{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;padding:5px 12px;
+  font-size:11px;font-family:var(--mono);color:var(--muted);
+}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 6px var(--green);
+  animation:pulse 2s infinite;
+}
+.status-dot.untrained{background:var(--yellow);box-shadow:0 0 6px var(--yellow);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+
+.btn-icon{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--muted);
+  font-family:var(--mono);font-size:11px;
+  padding:6px 12px;cursor:pointer;
+  transition:all .15s;
+  display:flex;align-items:center;gap:6px;
+}
+.btn-icon:hover{color:var(--text);border-color:var(--accent);background:var(--accent-glow);}
+
+/* ── Layout ── */
+.layout{
+  flex:1;
+  display:flex;
+  overflow:hidden;
+  position:relative;z-index:1;
+}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:300px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  background:rgba(17,20,32,0.7);
+  overflow:hidden;
+  transition:transform .3s;
+}
+.sidebar.hidden{display:none;}
+.sidebar-section{
+  padding:16px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-label{
+  font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px;
+}
+
+/* stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stat-card{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:8px;padding:10px;
+}
+.stat-val{font-size:20px;font-weight:700;color:var(--accent);font-family:var(--mono);}
+.stat-key{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* train area */
+.train-textarea{
+  width:100%;
+  background:var(--surface2);
+  border:1.5px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:var(--mono);font-size:11.5px;line-height:1.6;
+  padding:10px 12px;
+  resize:vertical;min-height:120px;
+  transition:border-color .2s;
+}
+.train-textarea:focus{outline:none;border-color:var(--accent);}
+.train-textarea::placeholder{color:var(--muted);}
+.source-input{
+  width:100%;
+  background:var(--surface2);
+  border:1.5px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:var(--mono);font-size:11px;
+  padding:7px 10px;margin-top:8px;
+  transition:border-color .2s;
+}
+.source-input:focus{outline:none;border-color:var(--accent);}
+.train-btn{
+  width:100%;margin-top:8px;
+  background:linear-gradient(135deg,#4f8ef7,#a78bfa);
+  border:none;border-radius:8px;
+  color:#fff;font-family:var(--sans);font-weight:600;font-size:12px;
+  padding:10px;cursor:pointer;
+  transition:opacity .15s,transform .15s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.train-btn:hover{opacity:.9;transform:translateY(-1px);}
+.train-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.train-status{
+  margin-top:8px;
+  font-size:11px;font-family:var(--mono);
+  border-radius:6px;padding:6px 10px;
+  display:none;
+}
+.train-status.ok{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2);display:block;}
+.train-status.err{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2);display:block;}
+
+/* file upload */
+.upload-zone{
+  border:1.5px dashed var(--border);
+  border-radius:8px;padding:16px;
+  text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;
+  font-size:11px;color:var(--muted);
+}
+.upload-zone:hover{border-color:var(--accent);background:var(--accent-glow);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+
+/* sources list */
+.sources-list{
+  padding:12px 16px;
+  flex:1;overflow-y:auto;
+}
+.source-chip{
+  display:flex;align-items:center;gap:6px;
+  font-size:10.5px;font-family:var(--mono);color:var(--muted);
+  padding:4px 0;border-bottom:1px solid var(--border);
+}
+.source-chip::before{content:'📄';font-size:12px;}
+.no-sources{font-size:11px;color:var(--muted);text-align:center;padding:12px 0;}
+
+/* reset btn */
+.reset-btn{
+  margin:12px 16px;
+  background:rgba(248,113,113,.08);
+  border:1px solid rgba(248,113,113,.2);
+  border-radius:8px;color:var(--red);
+  font-family:var(--mono);font-size:11px;
+  padding:8px;cursor:pointer;
+  transition:all .15s;width:calc(100% - 32px);
+}
+.reset-btn:hover{background:rgba(248,113,113,.15);}
+
+/* ── Chat area ── */
+.chat-area{
+  flex:1;display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* messages */
+.messages{
+  flex:1;overflow-y:auto;
+  padding:24px;
+  display:flex;flex-direction:column;
+  gap:16px;
+}
+.messages::-webkit-scrollbar{width:4px;}
+.messages::-webkit-scrollbar-track{background:transparent;}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* welcome */
+.welcome{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;flex:1;
+  text-align:center;padding:40px 20px;
+  opacity:.7;
+}
+.welcome-icon{
+  width:70px;height:70px;
+  background:linear-gradient(135deg,#4f8ef7,#a78bfa);
+  border-radius:18px;
+  display:grid;place-items:center;
+  font-size:28px;margin-bottom:20px;
+  box-shadow:0 0 40px rgba(79,142,247,0.25);
+}
+.welcome h2{font-size:22px;font-weight:700;margin-bottom:8px;}
+.welcome p{font-size:13px;color:var(--muted);line-height:1.6;max-width:380px;}
+.welcome .hint{
+  margin-top:20px;
+  font-size:11px;font-family:var(--mono);
+  color:var(--accent);
+  background:var(--accent-glow);
+  border:1px solid rgba(79,142,247,.2);
+  border-radius:8px;padding:8px 16px;
+}
+
+/* message bubble */
+.msg{
+  display:flex;gap:12px;
+  animation:fadeUp .25s ease both;
+  max-width:820px;
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.msg.user{flex-direction:row-reverse;align-self:flex-end;}
+.msg-avatar{
+  width:34px;height:34px;border-radius:10px;
+  display:grid;place-items:center;
+  font-size:13px;font-weight:700;flex-shrink:0;
+  margin-top:2px;
+}
+.msg.ai .msg-avatar{
+  background:linear-gradient(135deg,#4f8ef7,#a78bfa);
+  color:#fff;font-size:11px;
+}
+.msg.user .msg-avatar{
+  background:var(--user-bg);
+  border:1px solid var(--border);
+  color:var(--muted);font-size:16px;
+}
+.msg-content{display:flex;flex-direction:column;gap:4px;max-width:680px;}
+.msg-bubble{
+  padding:12px 16px;border-radius:12px;
+  font-size:13.5px;line-height:1.75;
+}
+.msg.ai .msg-bubble{
+  background:var(--ai-bg);
+  border:1px solid var(--border);
+  border-radius:12px 12px 12px 2px;
+  color:var(--text);
+}
+.msg.user .msg-bubble{
+  background:var(--user-bg);
+  border:1px solid rgba(79,142,247,.2);
+  border-radius:12px 12px 2px 12px;
+  color:var(--text);
+}
+.msg-meta{
+  display:flex;align-items:center;gap:8px;
+  font-size:10px;font-family:var(--mono);color:var(--muted);
+}
+.msg.user .msg-meta{justify-content:flex-end;}
+.conf-badge{
+  padding:1px 7px;border-radius:4px;font-size:9.5px;font-weight:600;
+}
+.conf-high{background:rgba(52,211,153,.12);color:var(--green);}
+.conf-medium{background:rgba(251,191,36,.12);color:var(--yellow);}
+.conf-low{background:rgba(248,113,113,.12);color:var(--red);}
+
+/* typing indicator */
+.typing{
+  display:flex;align-items:center;gap:6px;
+  padding:12px 16px;
+  background:var(--ai-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  width:fit-content;
+}
+.typing span{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  animation:bounce .8s infinite;
+}
+.typing span:nth-child(2){animation-delay:.15s;}
+.typing span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}
+
+/* ── Input bar ── */
+.input-bar{
+  border-top:1px solid var(--border);
+  padding:16px 24px;
+  background:rgba(10,12,18,0.9);
+  backdrop-filter:blur(12px);
+  flex-shrink:0;
+}
+.input-wrap{
+  display:flex;align-items:flex-end;gap:10px;
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-radius:14px;
+  padding:10px 14px;
+  transition:border-color .2s;
+}
+.input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.msg-input{
+  flex:1;background:none;border:none;
+  color:var(--text);font-family:var(--sans);font-size:14px;
+  resize:none;outline:none;line-height:1.5;
+  max-height:120px;min-height:24px;
+}
+.msg-input::placeholder{color:var(--muted);}
+.send-btn{
+  background:linear-gradient(135deg,#4f8ef7,#a78bfa);
+  border:none;border-radius:10px;
+  width:38px;height:38px;
+  display:grid;place-items:center;
+  cursor:pointer;flex-shrink:0;
+  transition:opacity .15s,transform .15s;
+  font-size:16px;
+}
+.send-btn:hover{opacity:.9;transform:scale(1.05);}
+.send-btn:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.input-hint{
+  text-align:center;margin-top:8px;
+  font-size:10px;font-family:var(--mono);color:var(--muted);
+}
+
+/* ── Mobile toggle ── */
+.sidebar-toggle{display:none;}
+
+@media(max-width:768px){
+  .sidebar{
+    position:fixed;inset:0 auto 0 0;z-index:100;
+    width:280px;transform:translateX(-100%);
+    transition:transform .3s;
+    display:flex !important;
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-toggle{display:flex;}
+  .overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.5);
+    z-index:99;
+  }
+  .overlay.show{display:block;}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <button class="btn-icon sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="logo-icon">L</div>
+    <div class="logo-text">
+      <h1>Leem AI</h1>
+      <p>Built by UE Developers · Owned by Makaram MS</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-badge">
+      <div class="status-dot untrained" id="statusDot"></div>
+      <span id="statusText">Not trained</span>
+    </div>
+    <button class="btn-icon" onclick="loadStats()">⟳ Refresh</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Overlay (mobile) -->
+  <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+
+    <!-- Stats -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Brain Stats</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="statChunks">0</div>
+          <div class="stat-key">Chunks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statVocab">0</div>
+          <div class="stat-key">Vocabulary</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Train with text -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Train on Text</div>
+      <textarea class="train-textarea" id="trainText"
+        placeholder="Paste your study notes, textbook content, or any plain text here…"></textarea>
+      <input class="source-input" id="sourceName" placeholder="Source name (e.g. Chapter 3)" />
+      <button class="train-btn" id="trainBtn" onclick="trainText()">
+        <span id="trainBtnText">⚡ Train Leem AI</span>
+      </button>
+      <div class="train-status" id="trainStatus"></div>
+    </div>
+
+    <!-- Upload file -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Upload File (.txt / .json)</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".txt,.json" onchange="uploadFile()">
+        📂 Drop or click to upload
+      </div>
+      <div class="train-status" id="uploadStatus"></div>
+    </div>
+
+    <!-- Sources -->
+    <div class="sidebar-label" style="padding:12px 16px 4px;">Trained Sources</div>
+    <div class="sources-list" id="sourcesList">
+      <div class="no-sources">No sources yet</div>
+    </div>
+
+    <!-- Reset -->
+    <button class="reset-btn" onclick="resetBrain()">🗑 Reset All Training Data</button>
+
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">🧠</div>
+        <h2>Hi, I'm Leem AI</h2>
+        <p>I'm a self-contained AI assistant for StudyLeem. Train me with your notes or textbook content, then ask me anything about it.</p>
+        <div class="hint">⬅ Train me first using the sidebar</div>
+      </div>
+    </div>
+    <div class="input-bar">
+      <div class="input-wrap">
+        <textarea class="msg-input" id="msgInput" rows="1"
+          placeholder="Ask Leem AI anything…"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+      </div>
+      <div class="input-hint">Enter to send · Shift+Enter for new line</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = '';  // same origin
+
+let isThinking = false;
+
+// ── Auto-resize textarea ─────────────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch(API + '/api/stats');
+    const d = await r.json();
+    document.getElementById('statChunks').textContent = d.total_chunks || 0;
+    document.getElementById('statVocab').textContent = d.vocabulary_size || 0;
+
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (d.trained) {
+      dot.classList.remove('untrained');
+      txt.textContent = `${d.total_chunks} chunks`;
+    } else {
+      dot.classList.add('untrained');
+      txt.textContent = 'Not trained';
+    }
+
+    // Sources list
+    const list = document.getElementById('sourcesList');
+    if (d.training_sources && d.training_sources.length) {
+      list.innerHTML = d.training_sources.map(s =>
+        `<div class="source-chip">${s}</div>`
+      ).join('');
+    } else {
+      list.innerHTML = '<div class="no-sources">No sources yet</div>';
+    }
+  } catch(e) {
+    console.error('Stats error', e);
+  }
+}
+
+// ── Train text ───────────────────────────────────────────────────────────────
+async function trainText() {
+  const text = document.getElementById('trainText').value.trim();
+  const source = document.getElementById('sourceName').value.trim() || 'manual';
+  const statusEl = document.getElementById('trainStatus');
+  const btn = document.getElementById('trainBtn');
+  const btnTxt = document.getElementById('trainBtnText');
+
+  if (!text) { showStatus(statusEl, 'err', 'Please paste some text first.'); return; }
+
+  btn.disabled = true;
+  btnTxt.textContent = 'Training…';
+  statusEl.className = 'train-status';
+
+  try {
+    const r = await fetch(API + '/api/train/text', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({text, source_name: source})
+    });
+    const d = await r.json();
+    if (r.ok) {
+      showStatus(statusEl, 'ok', `✓ +${d.chunks_added} chunks added. Total: ${d.total_chunks}`);
+      document.getElementById('trainText').value = '';
+      document.getElementById('sourceName').value = '';
+      loadStats();
+      hideWelcome();
+    } else {
+      showStatus(statusEl, 'err', d.detail || 'Training failed.');
+    }
+  } catch(e) {
+    showStatus(statusEl, 'err', 'Network error. Is the server running?');
+  }
+  btn.disabled = false;
+  btnTxt.textContent = '⚡ Train Leem AI';
+}
+
+// ── Upload file ──────────────────────────────────────────────────────────────
+async function uploadFile() {
+  const file = document.getElementById('fileInput').files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('uploadStatus');
+  showStatus(statusEl, 'ok', 'Uploading…');
+
+  const form = new FormData();
+  form.append('file', file);
+
+  try {
+    const r = await fetch(API + '/api/train/file', {method:'POST', body:form});
+    const d = await r.json();
+    if (r.ok) {
+      showStatus(statusEl, 'ok', `✓ ${file.name}: +${d.chunks_added} chunks`);
+      loadStats();
+      hideWelcome();
+    } else {
+      showStatus(statusEl, 'err', d.detail || 'Upload failed.');
+    }
+  } catch(e) {
+    showStatus(statusEl, 'err', 'Upload error.');
+  }
+  document.getElementById('fileInput').value = '';
+}
+
+// ── Send message ─────────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (isThinking) return;
+  const input = document.getElementById('msgInput');
+  const q = input.value.trim();
+  if (!q) return;
+
+  hideWelcome();
+  addMessage('user', q);
+  input.value = '';
+  input.style.height = 'auto';
+
+  const typing = addTyping();
+  isThinking = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  try {
+    const r = await fetch(API + '/api/ask', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({question: q})
+    });
+    const d = await r.json();
+    typing.remove();
+    addMessage('ai', d.answer, d.confidence_label, d.confidence);
+  } catch(e) {
+    typing.remove();
+    addMessage('ai', '❌ Connection error. Make sure the server is running.', null, 0);
+  }
+
+  isThinking = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// ── DOM helpers ──────────────────────────────────────────────────────────────
+function hideWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+}
+
+function addMessage(role, text, confLabel, conf) {
+  const container = document.getElementById('messages');
+  const msg = document.createElement('div');
+  msg.className = `msg ${role}`;
+
+  const avatar = role === 'ai'
+    ? '<div class="msg-avatar">L</div>'
+    : '<div class="msg-avatar">👤</div>';
+
+  let metaHtml = '';
+  if (role === 'ai') {
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    let confBadge = '';
+    if (confLabel) {
+      confBadge = `<span class="conf-badge conf-${confLabel}">${confLabel} confidence</span>`;
+    }
+    metaHtml = `<div class="msg-meta">Leem AI · ${now} ${confBadge}</div>`;
+  }
+
+  msg.innerHTML = `
+    ${avatar}
+    <div class="msg-content">
+      <div class="msg-bubble">${escHtml(text)}</div>
+      ${metaHtml}
+    </div>`;
+
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+  return msg;
+}
+
+function addTyping() {
+  const container = document.getElementById('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ai';
+  wrap.innerHTML = `
+    <div class="msg-avatar">L</div>
+    <div class="msg-content">
+      <div class="typing"><span></span><span></span><span></span></div>
+    </div>`;
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+  return wrap;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
+}
+
+function showStatus(el, type, msg) {
+  el.textContent = msg;
+  el.className = `train-status ${type}`;
+}
+
+// ── Reset ────────────────────────────────────────────────────────────────────
+async function resetBrain() {
+  if (!confirm('Reset ALL training data? This cannot be undone.')) return;
+  try {
+    const r = await fetch(API + '/api/reset', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({confirm: true})
+    });
+    const d = await r.json();
+    if (r.ok) {
+      loadStats();
+      alert('✓ All training data cleared.');
+    }
+  } catch(e) {}
+}
+
+// ── Sidebar (mobile) ─────────────────────────────────────────────────────────
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+});
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadStats();
+</script>
+</body>
+</html>
