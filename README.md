@@ -1,117 +1,158 @@
-# 🧠 Leem AI
+# 🧠 Leem AI v2 — Backend
 **Built by UE Developers · Owned by Makaram MS**
 
-A fully self-contained AI assistant for StudyLeem. No external APIs. No GPU needed.
-Trained on plain text using TF-IDF retrieval — runs comfortably on Railway's free tier.
+Self-contained AI backend for StudyLeem.  
+**No external AI API.** Uses Flan-T5-small (Google) locally for answer generation.
 
 ---
 
-## Project Structure
+## How It Works
 
 ```
-leemai/
-├── brain.py          ← TF-IDF AI engine (no external ML libs)
-├── main.py           ← FastAPI backend + REST API
-├── static/
-│   └── index.html    ← Chat UI (served by FastAPI)
-├── requirements.txt
-├── Procfile
-├── railway.toml
-└── .gitignore
+User Question
+     │
+     ▼
+TF-IDF Retriever  ──► finds top 4 relevant chunks from trained data
+     │
+     ▼
+Flan-T5-small     ──► reads chunks as context, GENERATES a real answer
+     │
+     ▼
+JSON Response     ──► sent to your Vercel frontend
 ```
+
+- **Retriever:** pure Python TF-IDF — no ML libs, ultra-fast
+- **Generator:** `google/flan-t5-small` — 300MB RAM, instruction-tuned, CPU-only
+- **Storage:** `leemai_data.pkl` — pickle file (add Railway Volume to persist)
 
 ---
 
-## API Endpoints
+## API Reference
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Chat UI |
-| GET | `/api/health` | Server health check |
-| GET | `/api/stats` | Brain stats (chunks, vocab, sources) |
-| POST | `/api/ask` | Ask a question |
-| POST | `/api/train/text` | Train on plain text |
-| POST | `/api/train/file` | Train by uploading .txt or .json file |
-| POST | `/api/reset` | Reset all training data |
-
-### Ask a question
+### `GET /api/health`
 ```json
-POST /api/ask
-{ "question": "What is a buffer solution?" }
+{ "status": "ok", "model_ready": true, "trained": true, "total_chunks": 120 }
 ```
 
-### Train on text
+### `GET /api/warmup`
+Call this when your Vercel page loads. Pre-loads model so first answer is fast.
 ```json
-POST /api/train/text
+{ "status": "ready", "message": "Model already loaded." }
+```
+
+### `GET /api/stats`
+```json
+{
+  "trained": true,
+  "total_chunks": 120,
+  "vocabulary_size": 3400,
+  "training_sources": ["Chapter3.txt", "leemai_clean.json"],
+  "model_ready": true
+}
+```
+
+### `POST /api/ask`
+```json
+// Request
+{ "question": "What is a buffer solution?", "top_k": 4 }
+
+// Response
+{
+  "answer": "A buffer solution resists changes in pH when small amounts of acid or base are added. It typically consists of a weak acid and its conjugate base.",
+  "confidence": 0.38,
+  "confidence_label": "high",
+  "generation_time": 4.2,
+  "model_ready": true,
+  "fallback": false,
+  "sources_count": 3
+}
+```
+
+### `POST /api/train/text`
+```json
+// Request
 { "text": "A buffer solution is...", "source_name": "Chapter 3" }
+
+// Response
+{ "status": "ok", "chunks_added": 14, "total_chunks": 134 }
+```
+
+### `POST /api/train/file`
+Multipart form upload. Accepts `.txt` and `.json`.
+```
+curl -X POST https://YOUR_RAILWAY_URL/api/train/file \
+  -F "file=@chapter3.txt"
+```
+
+### `POST /api/reset`
+```json
+{ "confirm": true }
 ```
 
 ---
 
-## Deploy to Railway (Step by Step)
+## Deploy to Railway
 
 ### Step 1 — Push to GitHub
 ```bash
-cd leemai
 git init
 git add .
-git commit -m "Leem AI v1.0"
-git remote add origin https://github.com/YOUR_USERNAME/leemai.git
+git commit -m "Leem AI v2"
+git remote add origin https://github.com/YOUR_USERNAME/leemai-backend.git
 git push -u origin main
 ```
 
 ### Step 2 — Create Railway project
-1. Go to **railway.com** → Login → **New Project**
-2. Select **Deploy from GitHub repo**
-3. Connect your GitHub and select the `leemai` repo
-4. Railway auto-detects Python via Nixpacks
+1. Go to **railway.com** → New Project → Deploy from GitHub
+2. Select `leemai-backend` repo
+3. Railway auto-detects Python via Nixpacks
 
-### Step 3 — Set environment (optional)
-Railway reads `$PORT` automatically. No extra env vars needed.
+### Step 3 — Add Volume (important for data persistence)
+1. In Railway project → **+ New** → **Volume**
+2. Mount path: `/app`
+3. This persists `leemai_data.pkl` across restarts
 
-### Step 4 — Deploy
-Railway builds and deploys automatically on every `git push`.
+### Step 4 — Get your URL
+Settings → Domains → Generate domain  
+Example: `https://leemai-backend-production.up.railway.app`
 
-### Step 5 — Get your URL
-Go to your Railway project → **Settings** → **Domains** → Generate domain.
-Your Leem AI will be live at: `https://leemai-xxxx.up.railway.app`
+**Give this URL to the frontend developer to connect your Vercel site.**
 
 ---
 
 ## Run Locally
 
 ```bash
-pip install -r requirements.txt
+pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cpu
+pip install fastapi uvicorn python-multipart transformers sentencepiece
 uvicorn main:app --reload --port 8000
-# Open: http://localhost:8000
 ```
 
----
-
-## How Training Works
-
-1. You paste text or upload a `.txt`/`.json` file
-2. Leem AI splits it into overlapping chunks of ~4 sentences
-3. Each chunk is tokenized and TF-IDF weighted (no ML library needed)
-4. Data is saved to `leemai_data.pkl` (persists across restarts on Railway volumes)
-
-## How Answering Works
-
-1. Your question is tokenized the same way
-2. Cosine similarity is computed against all stored chunks
-3. Top-matching chunks are merged into a clean answer
-4. Confidence is reported: high / medium / low
+First run downloads Flan-T5-small (~300MB). Cached after that.
 
 ---
 
-## Limitations
+## RAM Budget (Railway Free = 512MB)
 
-- Best for factual Q&A on content you've trained it with
-- Does not generate new sentences — retrieves and combines from trained text
-- For GPU-based generation, use Hugging Face Spaces instead
-- Training data resets on Railway free tier if no persistent volume is attached
-  → Add a Railway Volume mounted at `/app` to persist `leemai_data.pkl`
+| Component | RAM |
+|-----------|-----|
+| Python + FastAPI | ~40 MB |
+| Flan-T5-small model | ~240 MB |
+| Torch (CPU) runtime | ~30 MB |
+| Retriever + data | ~10–30 MB |
+| **Total** | **~320–340 MB** ✅ |
+
+Leaves ~170MB headroom — safe on free tier.
 
 ---
 
-*Leem AI · StudyLeem · UE Developers*
+## Notes
+
+- **Cold start:** model loads in 20–40s after Railway wakes the container
+- Call `/api/warmup` on page load to pre-load the model
+- Training data survives restarts only if a Railway Volume is mounted at `/app`
+- `.json` files from the chunk converter are directly supported
+
+---
+
+*Leem AI v2 · StudyLeem · UE Developers*

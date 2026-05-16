@@ -1,3 +1,13 @@
+# Leem AI v2 — Dependencies
+# Total RAM: ~310-340 MB on Railway free tier (512 MB limit)
+
+# Web framework
 fastapi==0.115.0
 uvicorn==0.30.6
 python-multipart==0.0.9
+
+# Flan-T5-small generative model
+# CPU-only torch keeps image size small
+torch==2.2.2+cpu --index-url https://download.pytorch.org/whl/cpu
+transformers==4.41.2
+sentencepiece==0.2.0
