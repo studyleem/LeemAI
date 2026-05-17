@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from retriever import Retriever
+from retriever import Retriever, init_db
 from generator import load_model, generate_answer, is_ready
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -24,13 +24,16 @@ logger = logging.getLogger("leemai")
 
 # ── Global retriever ───────────────────────────────────────────────────────────
 retriever = Retriever()
-retriever.load()
 
-# ── Startup: load model in background so server responds immediately ───────────
+# ── Startup: init DB, load data, start model ───────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Leem AI starting up...")
-    # Load model in a thread so it doesn't block the event loop
+    # 1. Create DB tables if they don't exist
+    init_db()
+    # 2. Load training data from PostgreSQL into memory
+    retriever.load()
+    # 3. Load Flan-T5 model in background thread (non-blocking)
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, load_model)
     yield

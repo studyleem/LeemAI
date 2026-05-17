@@ -6,6 +6,9 @@ fastapi==0.115.0
 uvicorn==0.30.6
 python-multipart==0.0.9
 
+# PostgreSQL
+psycopg2-binary==2.9.9
+
 # Flan-T5-small generative model
 # CPU-only torch keeps image size small
 torch==2.2.2+cpu --index-url https://download.pytorch.org/whl/cpu
